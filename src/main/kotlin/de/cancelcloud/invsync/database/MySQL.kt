@@ -27,8 +27,35 @@ object MySQL {
                 config.getString("username"), config.getString("password")
             )
             println("MySQL -> Connected.")
+
+
         } catch (ex: SQLException) {
             ex.printStackTrace()
+        }
+
+        try {
+            @Language("MySQL")
+            val stmt = prepareStatement(
+                """
+                create table if not exists inventory
+(
+    id          int unsigned auto_increment
+        primary key,
+    player_uuid char(36)    not null,
+    player_name varchar(16) not null,
+    inventory   longtext    not null,
+    armor       text        not null,
+    hotbar_slot int(2)      not null,
+    gamemode    int(1)      not null,
+    constraint mpdb_inventory_player_uuid_uindex
+        unique (player_uuid)
+);
+                """.trimIndent()
+            )
+
+            stmt!!.execute()
+        } catch (e: SQLException) {
+            println("Creation of table failed, please contact me via Github and paste Stacktrace \nStacktrace: \n $e")
         }
     }
 
