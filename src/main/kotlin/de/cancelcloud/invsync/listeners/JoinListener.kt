@@ -38,7 +38,5 @@ class JoinListener : Listener {
         } else {
             GetSettingsValueHandler(InvSyncerClass.instance).setvalue(player, 1)
         }
-
-
     }
 }
