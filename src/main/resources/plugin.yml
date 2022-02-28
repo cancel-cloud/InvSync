@@ -1,3 +1,4 @@
-name: InvSyncer
+name: InvSync
 main: de.cancelcloud.invsync.InvSyncerClass
 version: 1.0
+api-version: 1.18

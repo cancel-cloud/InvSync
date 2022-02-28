@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.6.10"
+    kotlin("jvm") version "1.6.20-M1"
     kotlin("plugin.serialization") version "1.6.10"
     id("com.github.johnrengelman.shadow") version "7.1.2"
 }
@@ -20,16 +20,13 @@ repositories {
 
 
 dependencies {
-    //Purpur aka Minecraft
+    //Purpur
     compileOnly("org.purpurmc.purpur", "purpur-api", "1.18.1-R0.1-SNAPSHOT")
 
     //Jetbrains-Exposed
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
-
-    //Maria-Database-Connector
-    implementation("mysql:mysql-connector-java:8.0.25")
 
 }
 
@@ -49,4 +46,13 @@ tasks.processResources {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.shadowJar {
+    archiveClassifier.set("Runnable")
+    dependencies {
+        include(dependency("org.jetbrains.exposed:exposed-core:$exposedVersion"))
+        include(dependency("org.jetbrains.exposed:dao:$exposedVersion"))
+        include(dependency("org.jetbrains.exposed:exposed-jdbc:$exposedVersion"))
+    }
 }
