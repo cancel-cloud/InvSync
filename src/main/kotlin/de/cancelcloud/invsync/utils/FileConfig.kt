@@ -29,7 +29,7 @@ class FileConfig(fileName: String) : YamlConfiguration() {
                 file.createNewFile()
             }
             load(path)
-        } catch (e: IOException) {
+        } catch (_: IOException) {
         } catch (e: InvalidConfigurationException) {
             e.printStackTrace()
         }

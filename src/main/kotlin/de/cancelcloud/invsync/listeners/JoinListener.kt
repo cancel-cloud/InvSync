@@ -14,6 +14,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
+import kotlin.system.measureTimeMillis
 
 class JoinListener : Listener {
 
@@ -22,59 +23,72 @@ class JoinListener : Listener {
     fun onJoin(event: PlayerJoinEvent) {
         val player = event.player
 
-        val checkPlayerExistsInDB = transaction { MySQL.InventoryTable.slice(MySQL.InventoryTable.player_uuid)
-            .select(where = MySQL.InventoryTable.player_uuid eq player.uniqueId.toString()).count() }
+        val checkPlayerExistsInDB = transaction {
+            MySQL.InventoryTable.slice(MySQL.InventoryTable.player_uuid)
+                .select(where = MySQL.InventoryTable.player_uuid eq player.uniqueId.toString()).count()
+        }
 
         if (checkPlayerExistsInDB != 0L) {
-            val inventoryTransaction = transaction {
-                //addLogger(StdOutSqlLogger)
-                MySQL.InventoryTable.slice(MySQL.InventoryTable.inventory)
-                    .select(where = MySQL.InventoryTable.player_uuid eq player.uniqueId.toString()).first()[MySQL.InventoryTable.inventory]
-            }
-            val armorTransaction = transaction {
-                //addLogger(StdOutSqlLogger)
-                MySQL.InventoryTable.slice(MySQL.InventoryTable.armor)
-                    .select(where = MySQL.InventoryTable.player_uuid eq player.uniqueId.toString()).first()[MySQL.InventoryTable.armor]
-            }
-            val hotbar_slotTransaction = transaction {
-                //addLogger(StdOutSqlLogger)
-                MySQL.InventoryTable.slice(MySQL.InventoryTable.hotbar_slot)
-                    .select(where = MySQL.InventoryTable.player_uuid eq player.uniqueId.toString())
-                    .first()[MySQL.InventoryTable.hotbar_slot]
-            }
-            val gameModeTransaction = transaction {
-                //addLogger(StdOutSqlLogger)
-                MySQL.InventoryTable.slice(MySQL.InventoryTable.gamemode)
-                    .select(where = MySQL.InventoryTable.player_uuid eq player.uniqueId.toString()).first()[MySQL.InventoryTable.gamemode]
-            }
+            val time = measureTimeMillis {
+                val inventoryTransaction = transaction {
+                    //addLogger(StdOutSqlLogger)
+                    MySQL.InventoryTable.slice(MySQL.InventoryTable.inventory)
+                        .select(where = MySQL.InventoryTable.player_uuid eq player.uniqueId.toString())
+                        .first()[MySQL.InventoryTable.inventory]
+                }
+                val armorTransaction = transaction {
+                    //addLogger(StdOutSqlLogger)
+                    MySQL.InventoryTable.slice(MySQL.InventoryTable.armor)
+                        .select(where = MySQL.InventoryTable.player_uuid eq player.uniqueId.toString())
+                        .first()[MySQL.InventoryTable.armor]
+                }
+                val hotbar_slotTransaction = transaction {
+                    //addLogger(StdOutSqlLogger)
+                    MySQL.InventoryTable.slice(MySQL.InventoryTable.hotbar_slot)
+                        .select(where = MySQL.InventoryTable.player_uuid eq player.uniqueId.toString())
+                        .first()[MySQL.InventoryTable.hotbar_slot]
+                }
+                val gameModeTransaction = transaction {
+                    //addLogger(StdOutSqlLogger)
+                    MySQL.InventoryTable.slice(MySQL.InventoryTable.gamemode)
+                        .select(where = MySQL.InventoryTable.player_uuid eq player.uniqueId.toString())
+                        .first()[MySQL.InventoryTable.gamemode]
+                }
 
 
-            player.inventory.contents = itemStackArrayFromBase64(inventoryTransaction)
+                player.inventory.contents = itemStackArrayFromBase64(inventoryTransaction)
 
 
-            player.inventory.heldItemSlot = hotbar_slotTransaction
-            player.gameMode = when (gameModeTransaction) {
-                0 -> GameMode.SURVIVAL
-                1 -> GameMode.CREATIVE
-                2 -> GameMode.ADVENTURE
-                3 -> GameMode.SPECTATOR
-                else -> GameMode.SURVIVAL
+                player.inventory.heldItemSlot = hotbar_slotTransaction
+                player.gameMode = when (gameModeTransaction) {
+                    0 -> GameMode.SURVIVAL
+                    1 -> GameMode.CREATIVE
+                    2 -> GameMode.ADVENTURE
+                    3 -> GameMode.SPECTATOR
+                    else -> GameMode.SURVIVAL
+                }
+
+                player.inventory.armorContents = itemStackArrayFromBase64(armorTransaction)
             }
+            println("Fetched ${player.name}´s data, which took ${time}ms.")
 
-            player.inventory.armorContents = itemStackArrayFromBase64(armorTransaction)
 
         } else {
-            transaction {
-                MySQL.InventoryTable.insert {
-                    it[id] = null
-                    it[player_uuid] = player.uniqueId.toString()
-                    it[player_name] = player.name
-                    it[inventory] = itemStackArrayToBase64(player.inventory.contents as Array<ItemStack>).toString()
-                    it[armor] = itemStackArrayToBase64(player.inventory.armorContents as Array<ItemStack>).toString()
-                    it[hotbar_slot] = player.inventory.heldItemSlot
-                    it[gamemode] = PlayerUtils.getPlayerGamemode(player)
+            val time = measureTimeMillis {
+                transaction {
+                    MySQL.InventoryTable.insert {
+                        it[id] = null
+                        it[player_uuid] = player.uniqueId.toString()
+                        it[player_name] = player.name
+                        it[inventory] = itemStackArrayToBase64(player.inventory.contents as Array<ItemStack>).toString()
+                        it[armor] =
+                            itemStackArrayToBase64(player.inventory.armorContents as Array<ItemStack>).toString()
+                        it[hotbar_slot] = player.inventory.heldItemSlot
+                        it[gamemode] = PlayerUtils.getPlayerGamemode(player)
+                    }
                 }
             }
+            println("Inserted ${player.name}, which took ${time}ms.")
         }
     }
 }

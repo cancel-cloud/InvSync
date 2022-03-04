@@ -11,24 +11,28 @@ import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.ItemStack
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
+import kotlin.system.measureTimeMillis
 
 class QuitListener(var invsync: InvSyncerClass) : Listener {
-
-
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onQuit(event: PlayerQuitEvent) {
         val player = event.player
+        val timeinmillis = measureTimeMillis {
 
-        transaction {
-            MySQL.InventoryTable.update {
-                it[player_uuid] = player.uniqueId.toString()
-                it[player_name] = player.name
-                it[inventory] = Base64.itemStackArrayToBase64(player.inventory.contents as Array<ItemStack>).toString()
-                it[armor] = Base64.itemStackArrayToBase64(player.inventory.armorContents as Array<ItemStack>).toString()
-                it[hotbar_slot] = player.inventory.heldItemSlot
-                it[gamemode] = PlayerUtils.getPlayerGamemode(player)
+            transaction {
+                MySQL.InventoryTable.update({ MySQL.InventoryTable.player_uuid.eq(player.uniqueId.toString()) }) {
+                    it[player_uuid] = player.uniqueId.toString()
+                    it[player_name] = player.name
+                    it[inventory] =
+                        Base64.itemStackArrayToBase64(player.inventory.contents as Array<ItemStack>).toString()
+                    it[armor] =
+                        Base64.itemStackArrayToBase64(player.inventory.armorContents as Array<ItemStack>).toString()
+                    it[hotbar_slot] = player.inventory.heldItemSlot
+                    it[gamemode] = PlayerUtils.getPlayerGamemode(player)
+                }
             }
         }
+        println("Saved ${player.name} in ${timeinmillis}ms.")
         player.inventory.clear()
     }
 }
